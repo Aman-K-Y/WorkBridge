@@ -1,0 +1,32 @@
+# Environment variables (contains real passwords/secrets — never commit this)
+.env
+
+# Python
+__pycache__/
+*.pyc
+venv/
+env/
+*.egg-info/
+
+# Java / Maven
+target/
+*.class
+
+# Node (if you ever add JS tooling)
+node_modules/
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Database files (if using local SQLite anywhere)
+*.db
+*.sqlite3
