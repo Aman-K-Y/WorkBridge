@@ -3,9 +3,9 @@ WorkBridge - Jobs Routes
 Handles job posting (clients), browsing/filtering (freelancers), and job details.
 """
 
-from flask import Blueprint, request, jsonify
-from models.sql_models import db, Job, User
-from utils.auth_helpers import decode_token
+from flask import Blueprint, request, jsonify, g
+from models.sql_models import db, Job, User, Proposal
+from utils.decorators import login_required
 from flask import current_app
 import datetime
 import requests
@@ -27,37 +27,23 @@ def parse_deadline(deadline_str):
         return None
 
 
-def get_authenticated_user():
-    """Pulls the JWT from the Authorization header and returns the decoded payload, or None."""
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        return None
-    token = auth_header.split(" ")[1]
-    return decode_token(token, current_app.config["SECRET_KEY"])
-
-
 @jobs_bp.route("", methods=["POST"])
+@login_required(role="client")
 def create_job():
-    """Client posts a new job. Requires a valid JWT with role='client'."""
-    user_payload = get_authenticated_user()
-    if not user_payload:
-        return jsonify({"error": "Authentication required"}), 401
-    if user_payload["role"] != "client":
-        return jsonify({"error": "Only clients can post jobs"}), 403
-
+    """Client posts a new job."""
     data = request.get_json()
     title = data.get("title")
     description = data.get("description")
     budget = data.get("budget")
     category = data.get("category")
-    required_skills = data.get("required_skills")  # comma-separated string, e.g. "Python, React"
-    deadline = data.get("deadline")  # expected format: "YYYY-MM-DD"
+    required_skills = data.get("required_skills")
+    deadline = data.get("deadline")
 
     if not all([title, description, budget]):
         return jsonify({"error": "title, description, and budget are required"}), 400
 
     new_job = Job(
-        client_id=user_payload["user_id"],
+        client_id=g.user.id,
         title=title,
         description=description,
         budget=budget,
@@ -114,42 +100,68 @@ def get_job_details(job_id):
 
 
 @jobs_bp.route("/<int:job_id>", methods=["PUT"])
+@login_required(role="client")
 def update_job_status(job_id):
-    """Client updates job status (e.g. mark as in_progress or completed)."""
-    user_payload = get_authenticated_user()
-    if not user_payload:
-        return jsonify({"error": "Authentication required"}), 401
-
-    job = Job.query.get(job_id)
+    """Client updates job status (e.g. mark as completed)."""
+    job = Job.query.with_for_update().get(job_id)
     if not job:
+        db.session.rollback()
         return jsonify({"error": "Job not found"}), 404
 
-    if job.client_id != user_payload["user_id"]:
+    if job.client_id != g.user.id:
+        db.session.rollback()
         return jsonify({"error": "You can only update your own jobs"}), 403
 
     data = request.get_json()
     new_status = data.get("status")
+
     if new_status not in ("open", "in_progress", "completed"):
+        db.session.rollback()
         return jsonify({"error": "Invalid status value"}), 400
 
+    # Enforce state machine
+    if new_status == job.status:
+        db.session.rollback()
+        return jsonify({"message": "Job status unchanged", "job": job.to_dict()}), 200
+
+    if new_status == "open":
+        db.session.rollback()
+        return jsonify({"error": "Cannot revert a job to open status"}), 409
+
+    if new_status == "in_progress":
+        db.session.rollback()
+        return jsonify({"error": "in_progress status can only be set by accepting a proposal"}), 409
+
+    if new_status == "completed":
+        if job.status != "in_progress":
+            db.session.rollback()
+            return jsonify({"error": "Only in_progress jobs can be marked as completed"}), 409
+        
+        accepted = Proposal.query.filter_by(job_id=job.id, status="accepted").first()
+        if not accepted:
+            db.session.rollback()
+            return jsonify({"error": "Cannot complete a job without an accepted proposal"}), 409
+
     job.status = new_status
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({"error": "Failed to update job status"}), 500
 
     return jsonify({"message": "Job status updated", "job": job.to_dict()}), 200
 
 
 @jobs_bp.route("/my-jobs", methods=["GET"])
+@login_required(role="client")
 def my_jobs():
     """Get all jobs posted by the currently logged-in client."""
-    user_payload = get_authenticated_user()
-    if not user_payload:
-        return jsonify({"error": "Authentication required"}), 401
-
-    jobs = Job.query.filter_by(client_id=user_payload["user_id"]).order_by(Job.created_at.desc()).all()
+    jobs = Job.query.filter_by(client_id=g.user.id).order_by(Job.created_at.desc()).all()
     return jsonify({"jobs": [job.to_dict() for job in jobs]}), 200
 
 
 @jobs_bp.route("/<int:job_id>/recommended-freelancers", methods=["GET"])
+@login_required(role="client")
 def recommended_freelancers(job_id):
     """
     Recommends freelancers for a job based on skill overlap, by calling out
@@ -161,14 +173,10 @@ def recommended_freelancers(job_id):
     and finally enriches the Java service's response (which only knows
     Mongo user_ids) with real names from MySQL before returning to the client.
     """
-    user_payload = get_authenticated_user()
-    if not user_payload:
-        return jsonify({"error": "Authentication required"}), 401
-
     job = Job.query.get(job_id)
     if not job:
         return jsonify({"error": "Job not found"}), 404
-    if job.client_id != user_payload["user_id"]:
+    if job.client_id != g.user.id:
         return jsonify({"error": "You can only view recommendations for your own jobs"}), 403
 
     if not job.required_skills:

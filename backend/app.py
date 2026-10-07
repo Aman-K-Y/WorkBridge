@@ -22,7 +22,12 @@ def create_app():
     origins = [o.strip() for o in origins if o.strip()]
     if origins:
         CORS(app, resources={r"/api/*": {"origins": origins}})
+
     db.init_app(app)
+
+    # Initialize Flask-Limiter
+    from routes.auth import limiter
+    limiter.init_app(app)
 
     # Register route blueprints
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
