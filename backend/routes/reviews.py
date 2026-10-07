@@ -80,11 +80,17 @@ def get_reviews_for_user(user_id):
     else:
         avg_rating = None
 
+    reviewer_ids = [r.reviewer_id for r in reviews]
+    if reviewer_ids:
+        reviewers = User.query.filter(User.id.in_(reviewer_ids)).all()
+        reviewer_map = {u.id: u.name for u in reviewers}
+    else:
+        reviewer_map = {}
+
     results = []
     for r in reviews:
-        reviewer = User.query.get(r.reviewer_id)
         r_data = r.to_dict()
-        r_data["reviewer_name"] = reviewer.name if reviewer else "Unknown"
+        r_data["reviewer_name"] = reviewer_map.get(r.reviewer_id, "Unknown")
         results.append(r_data)
 
     return jsonify({

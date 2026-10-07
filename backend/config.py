@@ -43,6 +43,12 @@ class Config:
         database=MYSQL_DB
     ).render_as_string(hide_password=False)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,
+        'pool_recycle': 280
+    }
+
+    MAX_CONTENT_LENGTH = 100 * 1024  # 100 KB
 
     # --- MongoDB ---
     MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")

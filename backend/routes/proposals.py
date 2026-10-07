@@ -57,11 +57,17 @@ def get_proposals_for_job(job_id):
 
     proposals = Proposal.query.filter_by(job_id=job_id).order_by(Proposal.created_at.desc()).all()
 
+    freelancer_ids = [p.freelancer_id for p in proposals]
+    if freelancer_ids:
+        freelancers = User.query.filter(User.id.in_(freelancer_ids)).all()
+        freelancer_map = {f.id: f.name for f in freelancers}
+    else:
+        freelancer_map = {}
+
     results = []
     for p in proposals:
-        freelancer = User.query.get(p.freelancer_id)
         p_data = p.to_dict()
-        p_data["freelancer_name"] = freelancer.name if freelancer else "Unknown"
+        p_data["freelancer_name"] = freelancer_map.get(p.freelancer_id, "Unknown")
         results.append(p_data)
 
     return jsonify({"proposals": results}), 200

@@ -14,11 +14,15 @@ messages_bp = Blueprint("messages", __name__)
 
 _mongo_client = None
 
+from pymongo.errors import PyMongoError
 def get_mongo_db():
     """Returns the MongoDB database handle, reusing one client connection."""
     global _mongo_client
     if _mongo_client is None:
-        _mongo_client = MongoClient(current_app.config["MONGO_URI"])
+        _mongo_client = MongoClient(
+            current_app.config["MONGO_URI"],
+            serverSelectionTimeoutMS=5000
+        )
     return _mongo_client[current_app.config["MONGO_DB_NAME"]]
 
 def get_authorized_counterpart(job, user_id):
