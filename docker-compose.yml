@@ -10,7 +10,7 @@ services:
       MYSQL_PASSWORD: wb_password
       MYSQL_DATABASE: workbridge
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
