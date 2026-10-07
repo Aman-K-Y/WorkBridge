@@ -12,9 +12,9 @@ import requests
 
 jobs_bp = Blueprint("jobs", __name__)
 
-# URL of the Java matching microservice. Kept as a plain constant here for
-# simplicity — for a real deployment this would move into config.py/.env.
-MATCHING_SERVICE_URL = "http://localhost:8081"
+import os
+
+MATCHING_SERVICE_URL = os.environ.get("MATCHING_SERVICE_URL", "http://localhost:8081")
 
 
 def parse_deadline(deadline_str):

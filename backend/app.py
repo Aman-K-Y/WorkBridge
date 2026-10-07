@@ -39,4 +39,6 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
-    app.run(debug=True, port=5000)
+    import os
+    is_debug = os.environ.get("FLASK_ENV") != "production"
+    app.run(debug=is_debug, port=5000)

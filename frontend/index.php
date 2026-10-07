@@ -11,7 +11,7 @@ require_once 'includes/header.php';
     <h1>Where clients and freelancers<br>connect directly.</h1>
     <p>WorkBridge is a free freelance marketplace. No platform fees, no commission cuts — just people getting hired, and freelancers keeping what they earn.</p>
     <div class="hero-cta">
-        <?php if (isLoggedIn()): ?>
+        <?php if (!empty($_SESSION['user'])): ?>
             <a href="browse-jobs.php" class="btn btn-primary">Browse Jobs</a>
             <a href="dashboard.php" class="btn btn-outline">Go to Dashboard</a>
         <?php else: ?>

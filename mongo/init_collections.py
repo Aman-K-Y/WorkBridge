@@ -6,16 +6,14 @@ with proper indexes for fast lookups.
 Usage:
     python init_collections.py
 """
-
 from pymongo import MongoClient, ASCENDING
 import os
+from dotenv import load_dotenv
 
-# Connection string — for local MongoDB this is usually fine as-is.
-# For MongoDB Atlas (cloud), replace with your Atlas connection string,
-# e.g. "mongodb+srv://<user>:<password>@cluster0.mongodb.net/"
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")
-DB_NAME = "workbridge"
-
+DB_NAME = os.environ.get("MONGO_DB_NAME", "workbridge")
 
 def init_collections():
     client = MongoClient(MONGO_URI)
