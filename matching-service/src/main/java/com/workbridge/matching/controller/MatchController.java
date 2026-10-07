@@ -32,6 +32,10 @@ public class MatchController {
             @RequestParam String skills,
             @RequestParam(defaultValue = "5") int limit
     ) {
+        if (limit < 1 || limit > 50) {
+            throw new IllegalArgumentException("Limit must be between 1 and 50");
+        }
+
         List<String> skillList = Arrays.stream(skills.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())

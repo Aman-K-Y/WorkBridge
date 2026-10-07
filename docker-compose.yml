@@ -26,6 +26,8 @@ services:
     ports:
       - "27017:27017"
     environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo_admin
+      MONGO_INITDB_ROOT_PASSWORD: mongo_password
       MONGO_INITDB_DATABASE: workbridge
     volumes:
       - mongo_data:/data/db
@@ -34,7 +36,6 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
     container_name: workbridge_backend
     ports:
       - "5000:5000"
@@ -45,7 +46,7 @@ services:
       - MYSQL_HOST=mysql
       - MYSQL_PORT=3306
       - MYSQL_DB=workbridge
-      - MONGO_URI=mongodb://mongodb:27017/
+      - MONGO_URI=mongodb://mongo_admin:mongo_password@mongodb:27017/?authSource=admin
       - MONGO_DB_NAME=workbridge
       - MATCHING_SERVICE_URL=http://matching-service:8081
       - SECRET_KEY=super-secret-docker-key
@@ -66,7 +67,7 @@ services:
       - "8081:8081"
     environment:
       - PORT=8081
-      - MONGODB_URI=mongodb://mongodb:27017/workbridge
+      - MONGODB_URI=mongodb://mongo_admin:mongo_password@mongodb:27017/workbridge?authSource=admin
     depends_on:
       - mongodb
 

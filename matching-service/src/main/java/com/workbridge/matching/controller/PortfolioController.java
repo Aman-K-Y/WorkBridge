@@ -28,6 +28,14 @@ public class PortfolioController {
             return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: X-User-Id header missing"));
         }
 
+        // Payload Validation
+        if (updateRequest.getSkills() == null || updateRequest.getSkills().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Skills list cannot be null or empty"));
+        }
+        if (updateRequest.getBio() != null && updateRequest.getBio().length() > 500) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Bio cannot exceed 500 characters"));
+        }
+
         Optional<Portfolio> existingOpt = portfolioRepository.findByUserId(userId);
         Portfolio portfolio;
         if (existingOpt.isPresent()) {
