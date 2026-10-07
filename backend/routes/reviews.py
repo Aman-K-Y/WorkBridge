@@ -4,38 +4,27 @@ Two-way reviews left after a job is marked completed:
 client rates freelancer, freelancer rates client.
 """
 
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, g
 from models.sql_models import db, Review, Job, Proposal, User
-from utils.auth_helpers import decode_token
+from utils.decorators import login_required
 
 reviews_bp = Blueprint("reviews", __name__)
 
 
-def get_authenticated_user():
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        return None
-    token = auth_header.split(" ")[1]
-    return decode_token(token, current_app.config["SECRET_KEY"])
-
-
 def get_job_counterpart(job, user_id):
-    """Given a job and the user leaving a review, figure out who the review is about.
-    If the reviewer is the client, the reviewee is the accepted freelancer, and vice versa."""
+    """Given a job and the user leaving a review, figure out who the review is about."""
     if job.client_id == user_id:
-        accepted = Proposal.query.filter_by(job_id=job.job_id, status="accepted").first()
+        accepted = Proposal.query.filter_by(job_id=job.id, status="accepted").first()
         return accepted.freelancer_id if accepted else None
     else:
-        return job.client_id
+        accepted = Proposal.query.filter_by(job_id=job.id, freelancer_id=user_id, status="accepted").first()
+        return job.client_id if accepted else None
 
 
 @reviews_bp.route("", methods=["POST"])
+@login_required()
 def submit_review():
     """Leave a review for the other party on a completed job."""
-    user_payload = get_authenticated_user()
-    if not user_payload:
-        return jsonify({"error": "Authentication required"}), 401
-
     data = request.get_json()
     job_id = data.get("job_id")
     rating = data.get("rating")
@@ -54,11 +43,11 @@ def submit_review():
     if job.status != "completed":
         return jsonify({"error": "You can only review jobs that are marked completed"}), 400
 
-    reviewer_id = user_payload["user_id"]
+    reviewer_id = g.user.id
     reviewee_id = get_job_counterpart(job, reviewer_id)
 
     if reviewee_id is None:
-        return jsonify({"error": "Could not determine who this review is for"}), 400
+        return jsonify({"error": "Could not determine who this review is for (unauthorized or no accepted proposal)"}), 403
 
     existing = Review.query.filter_by(job_id=job_id, reviewer_id=reviewer_id).first()
     if existing:

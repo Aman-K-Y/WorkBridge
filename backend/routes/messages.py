@@ -4,26 +4,15 @@ Chat between client and freelancer, scoped to a specific job.
 Uses MongoDB since message threads are variable-length and high-write-frequency.
 """
 
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, g
 from pymongo import MongoClient, ASCENDING
-from models.sql_models import Job
-from utils.auth_helpers import decode_token
+from models.sql_models import Job, Proposal
+from utils.decorators import login_required
 import datetime
 
 messages_bp = Blueprint("messages", __name__)
 
-# Reuse a single MongoClient across requests instead of opening a new
-# connection every time — this is the correct pattern for production use.
 _mongo_client = None
-
-
-def get_authenticated_user():
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        return None
-    token = auth_header.split(" ")[1]
-    return decode_token(token, current_app.config["SECRET_KEY"])
-
 
 def get_mongo_db():
     """Returns the MongoDB database handle, reusing one client connection."""
@@ -32,26 +21,27 @@ def get_mongo_db():
         _mongo_client = MongoClient(current_app.config["MONGO_URI"])
     return _mongo_client[current_app.config["MONGO_DB_NAME"]]
 
+def get_authorized_counterpart(job, user_id):
+    """Returns the ID of the other party if the user is authorized, else None."""
+    if job.client_id == user_id:
+        # Find the accepted proposal
+        accepted = Proposal.query.filter_by(job_id=job.id, status="accepted").first()
+        return accepted.freelancer_id if accepted else None
+    else:
+        # Check if the user is the accepted freelancer
+        accepted = Proposal.query.filter_by(job_id=job.id, freelancer_id=user_id, status="accepted").first()
+        return job.client_id if accepted else None
 
 @messages_bp.route("/<int:job_id>", methods=["GET"])
+@login_required()
 def get_messages(job_id):
-    """Get the full message thread for a job. Only the client or the accepted
-    freelancer on that job can view it."""
-    user_payload = get_authenticated_user()
-    if not user_payload:
-        return jsonify({"error": "Authentication required"}), 401
-
+    """Get the full message thread for a job."""
     job = Job.query.get(job_id)
     if not job:
         return jsonify({"error": "Job not found"}), 404
 
-    # Only the job's client, or someone who has an accepted proposal on it, can view messages.
-    # (Simplified check here: allow the client, or allow any freelancer for now —
-    # tighten this once proposal-acceptance checks are wired in fully.)
-    user_id = user_payload["user_id"]
-    is_client = job.client_id == user_id
-
-    if not is_client and user_payload["role"] != "freelancer":
+    user_id = g.user.id
+    if not get_authorized_counterpart(job, user_id):
         return jsonify({"error": "Not authorized to view this conversation"}), 403
 
     db = get_mongo_db()
@@ -63,50 +53,48 @@ def get_messages(job_id):
 
 
 @messages_bp.route("", methods=["POST"])
+@login_required()
 def send_message():
     """Send a message tied to a job, from the logged-in user to a specific receiver."""
-    user_payload = get_authenticated_user()
-    if not user_payload:
-        return jsonify({"error": "Authentication required"}), 401
-
     data = request.get_json()
     job_id = data.get("job_id")
-    receiver_id = data.get("receiver_id")
-    text = data.get("text")
+    text = data.get("text", "").strip()
 
-    if not all([job_id, receiver_id, text]):
-        return jsonify({"error": "job_id, receiver_id, and text are all required"}), 400
+    if not all([job_id, text]):
+        return jsonify({"error": "job_id and text are required"}), 400
+    
+    if len(text) > 2000:
+        return jsonify({"error": "Message is too long (max 2000 characters)"}), 400
 
     job = Job.query.get(job_id)
     if not job:
         return jsonify({"error": "Job not found"}), 404
 
+    user_id = g.user.id
+    counterpart_id = get_authorized_counterpart(job, user_id)
+    if not counterpart_id:
+        return jsonify({"error": "Not authorized to send a message on this job"}), 403
+
     message_doc = {
         "job_id": job_id,
-        "sender_id": user_payload["user_id"],
-        "receiver_id": receiver_id,
+        "sender_id": user_id,
+        "receiver_id": counterpart_id,
         "text": text,
-        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
     }
 
     db = get_mongo_db()
     db.messages.insert_one(message_doc)
 
-    # Remove the Mongo-internal _id before returning, it's not JSON serializable by default
     message_doc.pop("_id", None)
-
     return jsonify({"message": "Sent", "data": message_doc}), 201
 
 
 @messages_bp.route("/conversations", methods=["GET"])
+@login_required()
 def get_conversations():
-    """Get a list of distinct job_ids the logged-in user has messages in —
-    useful for showing an inbox/conversation list."""
-    user_payload = get_authenticated_user()
-    if not user_payload:
-        return jsonify({"error": "Authentication required"}), 401
-
-    user_id = user_payload["user_id"]
+    """Get a list of distinct job_ids the logged-in user has messages in."""
+    user_id = g.user.id
     db = get_mongo_db()
 
     job_ids = db.messages.distinct(

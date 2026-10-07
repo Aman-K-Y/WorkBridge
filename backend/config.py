@@ -22,6 +22,7 @@ class Config:
             SECRET_KEY = "dev-secret-change-this-in-production"
     
     JWT_EXPIRY_HOURS = 24
+    CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "")
 
     # --- MySQL (via SQLAlchemy) ---
     MYSQL_USER = os.environ.get("MYSQL_USER", "root")

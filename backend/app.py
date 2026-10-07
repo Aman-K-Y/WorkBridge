@@ -18,8 +18,10 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    CORS(app)  # allows the PHP frontend to call this API from a different port/origin
-
+    origins = app.config.get("CORS_ORIGINS", "").split(",")
+    origins = [o.strip() for o in origins if o.strip()]
+    if origins:
+        CORS(app, resources={r"/api/*": {"origins": origins}})
     db.init_app(app)
 
     # Register route blueprints
