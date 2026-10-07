@@ -6,9 +6,38 @@ Freelancers submit bids on jobs; clients accept or reject them.
 from flask import Blueprint, request, jsonify, g
 from models.sql_models import db, Proposal, Job, User
 from utils.decorators import login_required
+from utils.validation import get_safe_json
 
 proposals_bp = Blueprint("proposals", __name__)
 
+
+@proposals_bp.route("/my-proposals", methods=["GET"])
+@login_required(role="freelancer")
+def my_proposals():
+    """Get all proposals submitted by the logged-in freelancer."""
+    proposals = Proposal.query.filter_by(freelancer_id=g.user.id).order_by(Proposal.created_at.desc()).all()
+    
+    # Need to fetch job details for each proposal to include job title and status
+    job_ids = [p.job_id for p in proposals]
+    if job_ids:
+        jobs = Job.query.filter(Job.job_id.in_(job_ids)).all()
+        job_map = {j.job_id: j for j in jobs}
+    else:
+        job_map = {}
+
+    results = []
+    for p in proposals:
+        p_data = p.to_dict()
+        job = job_map.get(p.job_id)
+        if job:
+            p_data["job_title"] = job.title
+            p_data["job_status"] = job.status
+        else:
+            p_data["job_title"] = "Unknown Job"
+            p_data["job_status"] = "unknown"
+        results.append(p_data)
+
+    return jsonify({"proposals": results}), 200
 
 @proposals_bp.route("", methods=["POST"])
 @login_required(role="freelancer")
@@ -73,17 +102,6 @@ def get_proposals_for_job(job_id):
     return jsonify({"proposals": results}), 200
 
 
-@proposals_bp.route("/my-proposals", methods=["GET"])
-@login_required(role="freelancer")
-def my_proposals():
-    """Freelancer views all proposals they've submitted."""
-    proposals = Proposal.query.filter_by(freelancer_id=g.user.id).order_by(
-        Proposal.created_at.desc()
-    ).all()
-
-    return jsonify({"proposals": [p.to_dict() for p in proposals]}), 200
-
-
 @proposals_bp.route("/<int:proposal_id>", methods=["PUT"])
 @login_required(role="client")
 def update_proposal_status(proposal_id):
@@ -100,7 +118,7 @@ def update_proposal_status(proposal_id):
         db.session.rollback()
         return jsonify({"error": "You can only manage proposals on your own jobs"}), 403
 
-    data = request.get_json()
+    data = get_safe_json()
     new_status = data.get("status")
     if new_status not in ("accepted", "rejected"):
         db.session.rollback()
@@ -120,8 +138,8 @@ def update_proposal_status(proposal_id):
         job.status = "in_progress"
         # Auto-reject all other pending proposals for this job
         other_proposals = Proposal.query.filter(
-            Proposal.job_id == job.id,
-            Proposal.id != proposal.id,
+            Proposal.job_id == job.job_id,
+            Proposal.proposal_id != proposal.proposal_id,
             Proposal.status == "pending",
         ).all()
         for p in other_proposals:
@@ -129,7 +147,7 @@ def update_proposal_status(proposal_id):
 
     try:
         db.session.commit()
-    except Exception as e:
+    except Exception:
         db.session.rollback()
         return jsonify({"error": "Failed to update proposal"}), 500
 

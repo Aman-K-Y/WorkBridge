@@ -18,6 +18,7 @@ public class Portfolio {
     private Integer user_id;
     private List<String> skills;
     private String bio;
+    private Object past_work;
 
     public Portfolio() {
     }
@@ -52,5 +53,13 @@ public class Portfolio {
 
     public void setBio(String bio) {
         this.bio = bio;
+    }
+
+    public Object getPast_work() {
+        return past_work;
+    }
+
+    public void setPast_work(Object past_work) {
+        this.past_work = past_work;
     }
 }

@@ -53,7 +53,7 @@ class Job(db.Model):
     budget = db.Column(db.Numeric(10, 2), nullable=False)
     category = db.Column(db.String(100))
     required_skills = db.Column(db.String(255))
-    status = db.Column(db.Enum("open", "in_progress", "completed"), default="open")
+    status = db.Column(db.Enum("open", "in_progress", "completed", "cancelled"), default="open")
     deadline = db.Column(db.Date)
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
     updated_at = db.Column(db.TIMESTAMP, server_default=db.func.now(), onupdate=db.func.now())

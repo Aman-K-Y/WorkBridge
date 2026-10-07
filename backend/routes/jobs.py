@@ -171,6 +171,60 @@ def update_job_status(job_id):
     return jsonify({"message": "Job status updated", "job": job.to_dict()}), 200
 
 
+@jobs_bp.route("/<int:job_id>/cancel", methods=["POST"])
+@login_required(role="client")
+def cancel_job(job_id):
+    """Client cancels a job."""
+    job = Job.query.with_for_update().get(job_id)
+    if not job:
+        db.session.rollback()
+        return jsonify({"error": "Job not found"}), 404
+
+    if job.client_id != g.user.id:
+        db.session.rollback()
+        return jsonify({"error": "You can only cancel your own jobs"}), 403
+
+    if job.status != "open":
+        db.session.rollback()
+        return jsonify({"error": "Only open jobs can be cancelled"}), 400
+
+    job.status = "cancelled"
+    
+    # Auto-reject pending proposals
+    pending_proposals = Proposal.query.filter_by(job_id=job.job_id, status="pending").all()
+    freelancer_ids_to_notify = []
+    for p in pending_proposals:
+        p.status = "rejected"
+        freelancer_ids_to_notify.append(p.freelancer_id)
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({"error": "Failed to cancel job"}), 500
+
+    # Notify freelancers
+    if freelancer_ids_to_notify:
+        try:
+            from routes.messages import get_mongo_db
+            from pymongo.errors import PyMongoError
+            mongo_db = get_mongo_db()
+            message_docs = []
+            now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            for f_id in freelancer_ids_to_notify:
+                message_docs.append({
+                    "job_id": job.job_id,
+                    "sender_id": g.user.id,
+                    "receiver_id": f_id,
+                    "text": "This job has been cancelled. Your proposal was automatically rejected.",
+                    "timestamp": now_iso,
+                })
+            mongo_db.messages.insert_many(message_docs)
+        except PyMongoError as e:
+            current_app.logger.error(f"Failed to send cancellation notifications: {e}")
+
+    return jsonify({"message": "Job cancelled", "job": job.to_dict()}), 200
+
 @jobs_bp.route("/my-jobs", methods=["GET"])
 @login_required(role="client")
 def my_jobs():

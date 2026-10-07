@@ -12,6 +12,7 @@ from routes.jobs import jobs_bp
 from routes.proposals import proposals_bp
 from routes.messages import messages_bp
 from routes.reviews import reviews_bp
+from routes.users import users_bp
 
 
 def create_app():
@@ -39,6 +40,7 @@ def create_app():
     app.register_blueprint(proposals_bp, url_prefix="/api/proposals")
     app.register_blueprint(messages_bp, url_prefix="/api/messages")
     app.register_blueprint(reviews_bp, url_prefix="/api/reviews")
+    app.register_blueprint(users_bp, url_prefix="/api/users")
     # Core backend routes are now complete.
 
     # Error Handlers
