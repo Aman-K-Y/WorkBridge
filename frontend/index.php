@@ -12,11 +12,11 @@ require_once 'includes/header.php';
     <p>WorkBridge is a free freelance marketplace. No platform fees, no commission cuts — just people getting hired, and freelancers keeping what they earn.</p>
     <div class="hero-cta">
         <?php if (!empty($_SESSION['user'])): ?>
-            <a href="browse-jobs.php" class="btn btn-primary">Browse Jobs</a>
-            <a href="dashboard.php" class="btn btn-outline">Go to Dashboard</a>
+            <a href="browse-jobs.php" class="btn btn-primary" role="button" aria-label="Primary Action">Browse Jobs</a>
+            <a href="dashboard.php" class="btn btn-outline" role="button" aria-label="Secondary Action">Go to Dashboard</a>
         <?php else: ?>
-            <a href="signup.php" class="btn btn-primary">Get Started</a>
-            <a href="browse-jobs.php" class="btn btn-outline">Browse Jobs</a>
+            <a href="signup.php" class="btn btn-primary" role="button" aria-label="Primary Action">Get Started</a>
+            <a href="browse-jobs.php" class="btn btn-outline" role="button" aria-label="Secondary Action">Browse Jobs</a>
         <?php endif; ?>
     </div>
 </section>
@@ -26,7 +26,7 @@ require_once 'includes/header.php';
 </div>
 
 <section class="mt-2">
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+    <div class="job-grid">
         <div class="card">
             <div class="eyebrow">For Clients</div>
             <h3>Post a job in minutes</h3>

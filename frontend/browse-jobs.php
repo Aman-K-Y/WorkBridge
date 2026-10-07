@@ -55,6 +55,7 @@ require_once 'includes/header.php';
             <a href="job-details.php?id=<?php echo $job['job_id']; ?>" class="btn btn-outline btn-sm">View Details</a>
         </div>
     <?php endforeach; ?>
+    </div>
 <?php endif; ?>
 
 <?php require_once 'includes/footer.php'; ?>

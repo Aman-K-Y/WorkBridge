@@ -23,15 +23,16 @@ require_once 'includes/header.php';
 <?php if ($user['role'] === 'client'): ?>
     <div style="display:flex; justify-content:space-between; align-items:center; margin: 1.5rem 0;">
         <h3>My Posted Jobs</h3>
-        <a href="post-job.php" class="btn btn-primary btn-sm">+ Post a New Job</a>
+        <a href="post-job.php" class="btn btn-primary btn-sm" role="button" aria-label="Post a New Job">+ Post a New Job</a>
     </div>
 
     <?php if (empty($jobs)): ?>
         <div class="empty-state">
             <p>You haven't posted any jobs yet.</p>
-            <a href="post-job.php" class="btn btn-primary mt-1">Post Your First Job</a>
+            <a href="post-job.php" class="btn btn-primary mt-1" role="button" aria-label="Primary Action">Post Your First Job</a>
         </div>
     <?php else: ?>
+        <div class="job-grid">
         <?php foreach ($jobs as $job): ?>
             <div class="card job-card">
                 <div style="display:flex; justify-content:space-between; align-items:start;">
@@ -39,9 +40,10 @@ require_once 'includes/header.php';
                     <span class="job-budget">₹<?php echo number_format($job['budget']); ?></span>
                 </div>
                 <span class="badge badge-<?php echo $job['status']; ?>"><?php echo str_replace('_', ' ', $job['status']); ?></span>
-                <p class="mt-1"><a href="job-details.php?id=<?php echo $job['job_id']; ?>" class="btn btn-outline btn-sm">Manage &rarr;</a></p>
+                <p class="mt-1"><a href="job-details.php?id=<?php echo $job['job_id']; ?>" class="btn btn-outline btn-sm" role="button" aria-label="Manage Details">Manage &rarr;</a></p>
             </div>
         <?php endforeach; ?>
+        </div>
     <?php endif; ?>
 
 <?php else: ?>
@@ -50,9 +52,10 @@ require_once 'includes/header.php';
     <?php if (empty($proposals)): ?>
         <div class="empty-state">
             <p>You haven't submitted any proposals yet.</p>
-            <a href="browse-jobs.php" class="btn btn-primary mt-1">Browse Open Jobs</a>
+            <a href="browse-jobs.php" class="btn btn-primary mt-1" role="button" aria-label="Primary Action">Browse Open Jobs</a>
         </div>
     <?php else: ?>
+        <div class="job-grid">
         <?php foreach ($proposals as $p): ?>
             <div class="card">
                 <div style="display:flex; justify-content:space-between; align-items:start;">
@@ -63,6 +66,7 @@ require_once 'includes/header.php';
                 <p class="text-muted mt-1"><?php echo htmlspecialchars($p['cover_note']); ?></p>
             </div>
         <?php endforeach; ?>
+        </div>
     <?php endif; ?>
 <?php endif; ?>
 
