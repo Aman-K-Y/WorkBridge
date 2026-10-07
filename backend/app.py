@@ -15,9 +15,20 @@ from routes.reviews import reviews_bp
 from routes.users import users_bp
 
 
+import logging
+from pythonjsonlogger import jsonlogger
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # Set up structured JSON logging
+    logHandler = logging.StreamHandler()
+    formatter = jsonlogger.JsonFormatter('%(asctime)s %(levelname)s %(name)s %(message)s')
+    logHandler.setFormatter(formatter)
+    app.logger.handlers = []
+    app.logger.addHandler(logHandler)
+    app.logger.setLevel(logging.INFO)
 
     origins = app.config.get("CORS_ORIGINS", "").split(",")
     origins = [o.strip() for o in origins if o.strip()]

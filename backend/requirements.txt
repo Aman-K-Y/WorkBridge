@@ -14,3 +14,8 @@ email-validator
 flask-migrate
 
 gunicorn
+
+python-json-logger
+pytest-cov
+pip-audit
+ruff
