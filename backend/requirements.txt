@@ -12,3 +12,5 @@ flask-limiter
 email-validator
 
 flask-migrate
+
+gunicorn

@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: workbridge_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: wb_user
+      MYSQL_PASSWORD: wb_password
+      MYSQL_DATABASE: workbridge
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:6.0
+    container_name: workbridge_mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: workbridge
+    volumes:
+      - mongo_data:/data/db
+      - ./mongo/init.js:/docker-entrypoint-initdb.d/init.js
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: workbridge_backend
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - MYSQL_USER=wb_user
+      - MYSQL_PASSWORD=wb_password
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DB=workbridge
+      - MONGO_URI=mongodb://mongodb:27017/
+      - MONGO_DB_NAME=workbridge
+      - MATCHING_SERVICE_URL=http://matching-service:8081
+      - SECRET_KEY=super-secret-docker-key
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
+    command: >
+      sh -c "flask db upgrade && gunicorn -w 2 -b 0.0.0.0:5000 'app:create_app()'"
+
+  matching-service:
+    build:
+      context: ./matching-service
+      dockerfile: Dockerfile
+    container_name: workbridge_matching
+    ports:
+      - "8081:8081"
+    environment:
+      - PORT=8081
+      - MONGODB_URI=mongodb://mongodb:27017/workbridge
+    depends_on:
+      - mongodb
+
+volumes:
+  mysql_data:
+  mongo_data:
