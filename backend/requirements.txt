@@ -10,3 +10,5 @@ requests==2.32.3
 
 flask-limiter
 email-validator
+
+flask-migrate

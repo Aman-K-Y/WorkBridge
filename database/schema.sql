@@ -3,9 +3,8 @@
 -- Relational data: users, jobs, proposals, reviews
 -- ============================================
 
-DROP DATABASE IF EXISTS workbridge;
-CREATE DATABASE workbridge;
-USE workbridge;
+-- Use migrations for active development.
+
 
 -- ============================================
 -- USERS

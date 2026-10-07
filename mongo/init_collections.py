@@ -33,24 +33,26 @@ def init_collections():
     print("✅ 'portfolios' collection ready with unique index on user_id")
 
     # Insert a sample portfolio so there's something to query right away
-    sample_portfolio = {
-        "user_id": 2,  # matches Rohan Mehta (freelancer) from seed_data.sql
-        "skills": ["Python", "Flask", "React", "MongoDB"],
-        "past_work": [
-            {
-                "title": "E-commerce dashboard",
-                "link": "https://github.com/example/ecommerce-dashboard",
-                "description": "Built an admin dashboard for tracking orders and inventory."
-            }
-        ],
-        "bio": "Full-stack developer with 3 years of freelance experience."
-    }
+    import sys
+    if "--dev" in sys.argv:
+        sample_portfolio = {
+            "user_id": 2,  # matches Rohan Mehta (freelancer) from seed_data.sql / bob in python
+            "skills": ["Python", "Flask", "React", "MongoDB"],
+            "past_work": [
+                {
+                    "title": "E-commerce dashboard",
+                    "link": "https://github.com/example/ecommerce-dashboard",
+                    "description": "Built an admin dashboard for tracking orders and inventory."
+                }
+            ],
+            "bio": "Full-stack developer with 3 years of freelance experience."
+        }
 
-    if portfolios.count_documents({"user_id": 2}) == 0:
-        portfolios.insert_one(sample_portfolio)
-        print("✅ Sample portfolio inserted for user_id 2")
-    else:
-        print("ℹ️  Sample portfolio already exists, skipping insert")
+        if portfolios.count_documents({"user_id": 2}) == 0:
+            portfolios.insert_one(sample_portfolio)
+            print("✅ Sample portfolio inserted for user_id 2")
+        else:
+            print("ℹ️  Sample portfolio already exists, skipping insert")
 
     print("\nMongoDB setup complete. Collections:", db.list_collection_names())
 

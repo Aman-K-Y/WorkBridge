@@ -25,6 +25,10 @@ def create_app():
 
     db.init_app(app)
 
+    # Initialize Flask-Migrate
+    from flask_migrate import Migrate
+    Migrate(app, db)
+
     # Initialize Flask-Limiter
     from routes.auth import limiter
     limiter.init_app(app)
