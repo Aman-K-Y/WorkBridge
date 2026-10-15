@@ -5,8 +5,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
 
-# Add backend to path so we can import models and auth helpers
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))
+# Add backend and parent dirs to path so we can import models and auth helpers both on host and in container
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from models.sql_models import User, Job, Proposal, Review
 from utils.auth_helpers import hash_password
@@ -31,6 +32,10 @@ def seed_database():
     session = Session()
 
     try:
+        if "--force" not in sys.argv and session.query(User).count() > 0:
+            print("Database already contains data, skipping seed (use --force to re-seed).")
+            return
+
         # Clear existing data (respect foreign key constraints by deleting in correct order)
         session.query(Review).delete()
         session.query(Proposal).delete()
