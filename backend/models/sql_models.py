@@ -23,17 +23,74 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.Enum("client", "freelancer"), nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    status = db.Column(db.String(50), nullable=True)  # 'student', 'professional', 'unemployed'
+    phone_number = db.Column(db.String(30), nullable=True)
+    higher_qualification = db.Column(db.String(150), nullable=True)
+    skills = db.Column(db.String(255), nullable=True)
+    resume_url = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
     updated_at = db.Column(db.TIMESTAMP, server_default=db.func.now(), onupdate=db.func.now())
     deleted_at = db.Column(db.TIMESTAMP, nullable=True)
 
+    def get_completion_info(self):
+        missing = []
+        if self.role == "client":
+            total = 4
+            filled = 2  # name, email
+            if self.status:
+                filled += 1
+            else:
+                missing.append("Current Status (Student or Professional)")
+            if self.phone_number:
+                filled += 1
+            else:
+                missing.append("Contact Phone Number")
+            pct = int((filled / total) * 100)
+        else:
+            total = 7
+            filled = 2  # name, email
+            if self.status:
+                filled += 1
+            else:
+                missing.append("Current Status (Student, Unemployed, or Professional)")
+            if self.higher_qualification:
+                filled += 1
+            else:
+                missing.append("Higher Qualification")
+            if self.skills:
+                filled += 1
+            else:
+                missing.append("Skills")
+            if self.phone_number:
+                filled += 1
+            else:
+                missing.append("Contact Phone Number")
+            if self.resume_url:
+                filled += 1
+            else:
+                missing.append("Resume (PDF File)")
+            pct = int((filled / total) * 100)
+
+        return {
+            "percentage": pct,
+            "is_complete": len(missing) == 0,
+            "missing_fields": missing,
+        }
+
     def to_dict(self):
+        completion = self.get_completion_info()
         return {
             "user_id": self.user_id,
             "name": self.name,
             "email": self.email,
             "role": self.role,
+            "status": self.status,
+            "phone_number": self.phone_number,
+            "higher_qualification": self.higher_qualification,
+            "skills": self.skills,
+            "resume_url": self.resume_url,
             "is_active": self.is_active,
+            "completion": completion,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
