@@ -57,4 +57,33 @@ document.addEventListener('DOMContentLoaded', function () {
     if (chatThread) {
         chatThread.scrollTop = chatThread.scrollHeight;
     }
+
+    // --- Password Show / Hide Toggle ---
+    document.addEventListener('click', function (e) {
+        const toggleBtn = e.target.closest('.password-toggle-btn');
+        if (!toggleBtn) return;
+        
+        const wrap = toggleBtn.closest('.password-input-wrap');
+        if (!wrap) return;
+        
+        const input = wrap.querySelector('input');
+        if (!input) return;
+        
+        const eyeShow = toggleBtn.querySelector('.eye-show');
+        const eyeHide = toggleBtn.querySelector('.eye-hide');
+        
+        if (input.type === 'password') {
+            input.type = 'text';
+            toggleBtn.setAttribute('aria-label', 'Hide password');
+            toggleBtn.setAttribute('title', 'Hide password');
+            if (eyeShow) eyeShow.style.display = 'none';
+            if (eyeHide) eyeHide.style.display = 'block';
+        } else {
+            input.type = 'password';
+            toggleBtn.setAttribute('aria-label', 'Show password');
+            toggleBtn.setAttribute('title', 'Show password');
+            if (eyeShow) eyeShow.style.display = 'block';
+            if (eyeHide) eyeHide.style.display = 'none';
+        }
+    });
 });
