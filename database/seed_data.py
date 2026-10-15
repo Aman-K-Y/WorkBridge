@@ -46,7 +46,7 @@ def seed_database():
         # 1. Create Users
         # Using real bcrypt hashes
         pass_hash = hash_password("password123")
-        
+
         users = [
             User(name="Alice Client", email="alice@example.com", password_hash=pass_hash, role="client"),
             User(name="Bob Freelancer", email="bob@example.com", password_hash=pass_hash, role="freelancer"),

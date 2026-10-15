@@ -3,20 +3,21 @@ WorkBridge - Backend Entry Point
 Run with: python app.py
 """
 
+import logging
+
 from flask import Flask, jsonify
 from flask_cors import CORS
+from pythonjsonlogger import jsonlogger
+
 from config import Config
 from models.sql_models import db
 from routes.auth import auth_bp
 from routes.jobs import jobs_bp
-from routes.proposals import proposals_bp
 from routes.messages import messages_bp
+from routes.proposals import proposals_bp
 from routes.reviews import reviews_bp
 from routes.users import users_bp
 
-
-import logging
-from pythonjsonlogger import jsonlogger
 
 def create_app():
     app = Flask(__name__)

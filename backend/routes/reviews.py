@@ -4,8 +4,9 @@ Two-way reviews left after a job is marked completed:
 client rates freelancer, freelancer rates client.
 """
 
-from flask import Blueprint, request, jsonify, g
-from models.sql_models import db, Review, Job, Proposal, User
+from flask import Blueprint, g, jsonify, request
+
+from models.sql_models import Job, Proposal, Review, User, db
 from utils.decorators import login_required
 
 reviews_bp = Blueprint("reviews", __name__)

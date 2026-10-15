@@ -3,9 +3,8 @@ WorkBridge - SQLAlchemy Models
 """
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import CheckConstraint, UniqueConstraint, Index
+from sqlalchemy import CheckConstraint, Index, UniqueConstraint
 from sqlalchemy.orm import synonym
-
 
 db = SQLAlchemy()
 

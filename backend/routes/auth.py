@@ -3,13 +3,13 @@ WorkBridge - Auth Routes
 Handles user signup and login.
 """
 
-from flask import Blueprint, request, jsonify, current_app
-from models.sql_models import db, User
-from utils.auth_helpers import hash_password, check_password, generate_token
-from email_validator import validate_email, EmailNotValidError
+from email_validator import EmailNotValidError, validate_email
+from flask import Blueprint, current_app, jsonify, request
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-import bcrypt
+
+from models.sql_models import User, db
+from utils.auth_helpers import check_password, generate_token, hash_password
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -94,7 +94,7 @@ def login():
     # Dummy check to mitigate timing attacks
     dummy_hash = "$2b$12$DUMMYDUMMYDUMMYDUMMYDUMMYDUMMYDUMMYDUMMYDUMMYDUMMYDUMMY"
     valid = False
-    
+
     if user:
         valid = check_password(password, user.password_hash)
     else:

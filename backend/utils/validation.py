@@ -1,5 +1,7 @@
-from flask import request
 from decimal import Decimal, InvalidOperation
+
+from flask import request
+
 
 def get_safe_json():
     """Returns the JSON body safely, or an empty dict if none/invalid."""
@@ -31,7 +33,7 @@ def normalize_skills(skills_str):
     if not skills_str:
         return ""
     # Split, strip, lowercase for deduplication, but keep original case?
-    # Actually, the instructions say 'Python,react' and 'python, React' differ. 
+    # Actually, the instructions say 'Python,react' and 'python, React' differ.
     # We should normalize them. Let's make them title case or lower case.
     skills = [s.strip() for s in skills_str.split(",") if s.strip()]
     unique_skills = []

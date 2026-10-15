@@ -3,9 +3,11 @@ WorkBridge - Auth Helpers
 Password hashing (bcrypt) and JWT token creation/verification.
 """
 
+import datetime
+
 import bcrypt
 import jwt
-import datetime
+
 
 def hash_password(plain_password: str) -> str:
     """Hash a plain-text password for storing in the database."""

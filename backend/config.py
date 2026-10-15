@@ -4,6 +4,7 @@ Loads DB credentials and app settings from environment variables (.env file).
 """
 
 import os
+
 from dotenv import load_dotenv
 from sqlalchemy.engine import URL
 
@@ -20,7 +21,7 @@ class Config:
     else:
         if not SECRET_KEY:
             SECRET_KEY = "dev-secret-change-this-in-production"
-    
+
     JWT_EXPIRY_HOURS = 24
     CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "")
 

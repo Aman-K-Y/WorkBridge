@@ -4,17 +4,19 @@ Chat between client and freelancer, scoped to a specific job.
 Uses MongoDB since message threads are variable-length and high-write-frequency.
 """
 
-from flask import Blueprint, request, jsonify, current_app, g
-from pymongo import MongoClient, ASCENDING
+import datetime
+
+from flask import Blueprint, current_app, g, jsonify, request
+from pymongo import ASCENDING, MongoClient
+
 from models.sql_models import Job, Proposal
 from utils.decorators import login_required
-import datetime
 
 messages_bp = Blueprint("messages", __name__)
 
 _mongo_client = None
 
-from pymongo.errors import PyMongoError
+
 def get_mongo_db():
     """Returns the MongoDB database handle, reusing one client connection."""
     global _mongo_client
@@ -66,7 +68,7 @@ def send_message():
 
     if not all([job_id, text]):
         return jsonify({"error": "job_id and text are required"}), 400
-    
+
     if len(text) > 2000:
         return jsonify({"error": "Message is too long (max 2000 characters)"}), 400
 

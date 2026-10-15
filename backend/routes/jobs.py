@@ -3,17 +3,22 @@ WorkBridge - Jobs Routes
 Handles job posting (clients), browsing/filtering (freelancers), and job details.
 """
 
-from flask import Blueprint, request, jsonify, g
-from models.sql_models import db, Job, User, Proposal
-from utils.decorators import login_required
-from utils.validation import get_safe_json, validate_decimal, validate_string, normalize_skills
-from flask import current_app
 import datetime
+import os
+
 import requests
+from flask import Blueprint, current_app, g, jsonify, request
+
+from models.sql_models import Job, Proposal, User, db
+from utils.decorators import login_required
+from utils.validation import (
+    get_safe_json,
+    normalize_skills,
+    validate_decimal,
+    validate_string,
+)
 
 jobs_bp = Blueprint("jobs", __name__)
-
-import os
 
 MATCHING_SERVICE_URL = os.environ.get("MATCHING_SERVICE_URL", "http://localhost:8081")
 
@@ -94,7 +99,7 @@ def browse_jobs():
     per_page = min(request.args.get("per_page", 20, type=int), 50)
 
     pagination = query.order_by(Job.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
-    
+
     return jsonify({
         "jobs": [job.to_dict() for job in pagination.items],
         "total": pagination.total,
@@ -155,7 +160,7 @@ def update_job_status(job_id):
         if job.status != "in_progress":
             db.session.rollback()
             return jsonify({"error": "Only in_progress jobs can be marked as completed"}), 409
-        
+
         accepted = Proposal.query.filter_by(job_id=job.id, status="accepted").first()
         if not accepted:
             db.session.rollback()
@@ -189,7 +194,7 @@ def cancel_job(job_id):
         return jsonify({"error": "Only open jobs can be cancelled"}), 400
 
     job.status = "cancelled"
-    
+
     # Auto-reject pending proposals
     pending_proposals = Proposal.query.filter_by(job_id=job.job_id, status="pending").all()
     freelancer_ids_to_notify = []
@@ -206,8 +211,9 @@ def cancel_job(job_id):
     # Notify freelancers
     if freelancer_ids_to_notify:
         try:
-            from routes.messages import get_mongo_db
             from pymongo.errors import PyMongoError
+
+            from routes.messages import get_mongo_db
             mongo_db = get_mongo_db()
             message_docs = []
             now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -259,7 +265,7 @@ def recommended_freelancers(job_id):
         match_data = response.json()
     except requests.exceptions.RequestException as e:
         # 3.10 Return generic error message and don't expose hostnames
-        current_app.logger.error(f"Matching service failure: {str(e)}")
+        current_app.logger.error(f"Matching service failure: {e!s}")
         return jsonify({
             "error": "Matching service is temporarily unavailable."
         }), 503

@@ -1,9 +1,11 @@
-from flask import Blueprint, jsonify, request, g, current_app
-from models.sql_models import db, User, Job, Proposal
-from utils.decorators import login_required
-from utils.auth_helpers import decode_token
 import os
+
 import requests
+from flask import Blueprint, current_app, g, jsonify, request
+
+from models.sql_models import Job, Proposal, User, db
+from utils.auth_helpers import decode_token
+from utils.decorators import login_required
 
 users_bp = Blueprint("users", __name__)
 
@@ -118,7 +120,7 @@ def update_profile():
         db.session.commit()
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": f"Failed to save profile: {str(e)}"}), 500
+        return jsonify({"error": f"Failed to save profile: {e!s}"}), 500
 
     return jsonify({
         "message": "Profile updated successfully",

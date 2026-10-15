@@ -3,8 +3,9 @@ WorkBridge - Proposals Routes
 Freelancers submit bids on jobs; clients accept or reject them.
 """
 
-from flask import Blueprint, request, jsonify, g
-from models.sql_models import db, Proposal, Job, User
+from flask import Blueprint, g, jsonify, request
+
+from models.sql_models import Job, Proposal, User, db
 from utils.decorators import login_required
 from utils.validation import get_safe_json
 
@@ -16,7 +17,7 @@ proposals_bp = Blueprint("proposals", __name__)
 def my_proposals():
     """Get all proposals submitted by the logged-in freelancer."""
     proposals = Proposal.query.filter_by(freelancer_id=g.user.id).order_by(Proposal.created_at.desc()).all()
-    
+
     # Need to fetch job details for each proposal to include job title and status
     job_ids = [p.job_id for p in proposals]
     if job_ids:
