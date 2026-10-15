@@ -14,8 +14,27 @@ $isSelf = $currentUser && ((int)$currentUser['user_id'] === (int)$userId);
 $successMsg = '';
 $errorMsg = '';
 
+// Handle Profile Photo Removal (by user)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isSelf && isset($_POST['action']) && $_POST['action'] === 'remove_avatar') {
+    // Delete physical file if exists
+    $checkUser = apiGet("/users/$userId", true);
+    $existingAvatar = $checkUser['body']['profile']['avatar_url'] ?? ($currentUser['avatar_url'] ?? null);
+    if (!empty($existingAvatar)) {
+        $filePath = __DIR__ . '/' . $existingAvatar;
+        if (file_exists($filePath)) {
+            @unlink($filePath);
+        }
+    }
+    $updateRes = apiPut('/users/profile', ['avatar_url' => ''], true);
+    if ($updateRes['status'] === 200) {
+        $successMsg = 'Profile photo removed successfully.';
+        $_SESSION['user']['avatar_url'] = null;
+    } else {
+        $errorMsg = $updateRes['body']['error'] ?? 'Failed to remove profile photo.';
+    }
+}
 // Handle Profile Updates (by the user themselves)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isSelf) {
+elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && $isSelf) {
     $status = trim($_POST['status'] ?? '');
     $phoneNumber = trim($_POST['phone_number'] ?? '');
     $higherQual = trim($_POST['higher_qualification'] ?? '');
@@ -46,6 +65,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isSelf) {
 
             if (move_uploaded_file($file['tmp_name'], $destPath)) {
                 $updateData['avatar_url'] = 'uploads/avatars/' . $filename;
+                if (!empty($currentUser['avatar_url']) && file_exists(__DIR__ . '/' . $currentUser['avatar_url'])) {
+                    @unlink(__DIR__ . '/' . $currentUser['avatar_url']);
+                }
             } else {
                 $errorMsg = 'Failed to save uploaded profile photo.';
             }
@@ -160,9 +182,19 @@ $completion = $profile['completion'] ?? ['percentage' => 50, 'is_complete' => fa
         </div>
 
         <?php if ($isSelf): ?>
-            <button type="button" class="btn btn-outline btn-sm" id="toggle-edit-btn" onclick="toggleEditProfile()">
-                ✏️ Edit Verification Info
-            </button>
+            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                <?php if (!empty($profile['avatar_url'])): ?>
+                    <form method="POST" style="display:inline; margin:0;" onsubmit="return confirm('Are you sure you want to remove your profile photo?');">
+                        <input type="hidden" name="action" value="remove_avatar">
+                        <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);" title="Remove profile photo">
+                            🗑️ Remove Photo
+                        </button>
+                    </form>
+                <?php endif; ?>
+                <button type="button" class="btn btn-outline btn-sm" id="toggle-edit-btn" onclick="toggleEditProfile()">
+                    ✏️ Edit Verification Info
+                </button>
+            </div>
         <?php endif; ?>
     </div>
 
@@ -358,9 +390,14 @@ $completion = $profile['completion'] ?? ['percentage' => 50, 'is_complete' => fa
                 <label for="avatar">Profile Photo (JPG, PNG, WebP)</label>
                 <input type="file" name="avatar" id="avatar" accept="image/png, image/jpeg, image/webp">
                 <?php if (!empty($profile['avatar_url'])): ?>
-                    <small class="text-muted" style="display:block; margin-top:4px;">
-                        Current photo uploaded. Choose a new image file to replace it.
-                    </small>
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px; flex-wrap:wrap; gap:0.5rem; background:var(--surface-sunken); padding:8px 12px; border-radius:6px; border:1px solid var(--border-color);">
+                        <small class="text-muted" style="margin:0;">
+                            Current photo uploaded. Choose a new image file to replace it, or remove it:
+                        </small>
+                        <button type="button" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger); font-size:0.8rem; padding:0.25rem 0.6rem;" onclick="if(confirm('Are you sure you want to remove your profile photo?')) { document.getElementById('remove-avatar-form').submit(); }">
+                            🗑️ Remove Current Photo
+                        </button>
+                    </div>
                 <?php endif; ?>
             </div>
 
@@ -369,6 +406,12 @@ $completion = $profile['completion'] ?? ['percentage' => 50, 'is_complete' => fa
                 <button type="button" class="btn btn-outline" onclick="toggleEditProfile()">Cancel</button>
             </div>
         </form>
+
+        <?php if (!empty($profile['avatar_url'])): ?>
+            <form id="remove-avatar-form" method="POST" style="display:none;">
+                <input type="hidden" name="action" value="remove_avatar">
+            </form>
+        <?php endif; ?>
     </div>
 
     <script>
