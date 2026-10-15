@@ -7,6 +7,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
 
 :root {
+    color-scheme: light;
     --ink: #1B2A4A;
     --ink-soft: #2E4066;
     --paper: #F6F4EF;
@@ -36,6 +37,7 @@
 
 /* ---------------- Dark mode ---------------- */
 [data-theme="dark"] {
+    color-scheme: dark;
     --ink: #EDEBE3;
     --ink-soft: #C9CEDC;
     --paper: #141B2E;
@@ -460,7 +462,19 @@ a:hover { color: var(--amber-dark); }
     color: #FFFFFF !important;
 }
 
-/* Fix browser autofill washing out background or text in dark mode */
+/* Browser autofill fix for Light Mode (prevents OS dark-mode from making inputs dark navy) */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-text-fill-color: #1B2A4A !important;
+    -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+    box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+    caret-color: #1B2A4A !important;
+}
+
+/* Browser autofill fix for Dark Mode */
 [data-theme="dark"] input:-webkit-autofill,
 [data-theme="dark"] input:-webkit-autofill:hover, 
 [data-theme="dark"] input:-webkit-autofill:focus,
@@ -542,6 +556,10 @@ a:hover { color: var(--amber-dark); }
 .role-toggle label:has(input:checked) {
     border-color: var(--amber);
     background: #FCF6EA;
+}
+[data-theme="dark"] .role-toggle label:has(input:checked) {
+    border-color: var(--amber);
+    background: rgba(240, 178, 78, 0.18);
 }
 
 /* ---------------- Buttons ---------------- */

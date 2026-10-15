@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const current = html.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
             const next = current === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-theme', next);
+            html.style.colorScheme = next;
             localStorage.setItem('workbridge-theme', next);
         });
     }
