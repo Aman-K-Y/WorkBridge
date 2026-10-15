@@ -73,6 +73,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
+// Client withdrawing / cancelling an open job
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'cancel_job') {
+    requireLogin();
+    $result = apiPost("/jobs/$jobId/cancel", [], true);
+    if ($result['status'] === 200) {
+        $successMsg = 'This job has been withdrawn successfully.';
+        $jobResult = apiGet("/jobs/$jobId");
+        $job = $jobResult['body']['job'] ?? $result['body']['job'];
+    } else {
+        $error = $result['body']['error'] ?? 'Could not withdraw job.';
+    }
+}
+
 // Load proposals if the current user owns this job
 $proposals = [];
 if ($isOwner) {
@@ -126,6 +139,16 @@ require_once 'includes/header.php';
         <form method="POST" style="display:inline;">
             <input type="hidden" name="action" value="mark_complete">
             <button type="submit" class="btn btn-secondary btn-sm">Mark Job as Completed</button>
+        </form>
+    <?php endif; ?>
+
+    <?php if ($isOwner && $job['status'] === 'open'): ?>
+        <form method="POST" style="display:inline; margin-top: 1rem;" onsubmit="return confirm('Are you sure you want to withdraw this job? Any pending proposals will be automatically rejected.');">
+            <input type="hidden" name="action" value="cancel_job">
+            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);" role="button" aria-label="Withdraw Job">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle; margin-right:4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                Withdraw Job
+            </button>
         </form>
     <?php endif; ?>
 

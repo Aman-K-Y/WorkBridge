@@ -13,6 +13,21 @@ if (count($nameParts) > 1) {
     $initials .= strtoupper(substr(end($nameParts), 0, 1));
 }
 
+$successMsg = '';
+$errorMsg = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'cancel_job') {
+    $cancelId = (int)($_POST['job_id'] ?? 0);
+    if ($cancelId > 0) {
+        $cancelResult = apiPost("/jobs/$cancelId/cancel", [], true);
+        if ($cancelResult['status'] === 200) {
+            $successMsg = "Job #$cancelId has been withdrawn successfully.";
+        } else {
+            $errorMsg = $cancelResult['body']['error'] ?? "Failed to withdraw job.";
+        }
+    }
+}
+
 if ($role === 'client') {
     $result = apiGet('/jobs/my-jobs', true);
     $jobs = $result['body']['jobs'] ?? [];
@@ -37,6 +52,9 @@ if ($role === 'client') {
 $pageTitle = 'Dashboard';
 require_once 'includes/header.php';
 ?>
+
+<?php if ($successMsg): ?><div class="alert alert-success"><?php echo htmlspecialchars($successMsg); ?></div><?php endif; ?>
+<?php if ($errorMsg): ?><div class="alert alert-error"><?php echo htmlspecialchars($errorMsg); ?></div><?php endif; ?>
 
 <!-- ================= Dashboard Hero Banner ================= -->
 <div class="dashboard-hero">
@@ -202,6 +220,9 @@ require_once 'includes/header.php';
                 <button type="button" class="tab-btn" data-filter="completed">
                     Completed <span class="tab-count"><?php echo $completedJobs; ?></span>
                 </button>
+                <button type="button" class="tab-btn" data-filter="cancelled">
+                    Cancelled <span class="tab-count"><?php echo $cancelledJobs; ?></span>
+                </button>
             <?php else: ?>
                 <button type="button" class="tab-btn" data-filter="pending">
                     Pending <span class="tab-count"><?php echo $pendingProposals; ?></span>
@@ -281,9 +302,20 @@ require_once 'includes/header.php';
                             <span class="dash-budget-caption">Project Budget</span>
                             <span class="dash-budget-amount">₹<?php echo number_format($job['budget']); ?></span>
                         </div>
-                        <a href="job-details.php?id=<?php echo $job['job_id']; ?>" class="btn btn-outline btn-sm" role="button" aria-label="Manage Job">
-                            Manage &rarr;
-                        </a>
+                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                            <?php if ($job['status'] === 'open'): ?>
+                                <form method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to withdraw this job? Any pending proposals will be rejected.');">
+                                    <input type="hidden" name="action" value="cancel_job">
+                                    <input type="hidden" name="job_id" value="<?php echo $job['job_id']; ?>">
+                                    <button type="submit" class="btn btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);" role="button" aria-label="Withdraw Job">
+                                        Withdraw
+                                    </button>
+                                </form>
+                            <?php endif; ?>
+                            <a href="job-details.php?id=<?php echo $job['job_id']; ?>" class="btn btn-outline btn-sm" role="button" aria-label="Manage Job">
+                                Manage &rarr;
+                            </a>
+                        </div>
                     </div>
                 </div>
             <?php endforeach; ?>
