@@ -4,6 +4,7 @@ WorkBridge - SQLAlchemy Models
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import CheckConstraint, UniqueConstraint, Index
+from sqlalchemy.orm import synonym
 
 
 db = SQLAlchemy()
@@ -16,6 +17,7 @@ class User(db.Model):
     )
 
     user_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id = synonym("user_id")
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(150), nullable=False, unique=True)
     password_hash = db.Column(db.String(255), nullable=False)
@@ -47,6 +49,7 @@ class Job(db.Model):
     )
 
     job_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id = synonym("job_id")
     client_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
     title = db.Column(db.String(150), nullable=False)
     description = db.Column(db.Text, nullable=False)
@@ -83,6 +86,7 @@ class Proposal(db.Model):
     )
 
     proposal_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id = synonym("proposal_id")
     job_id = db.Column(db.Integer, db.ForeignKey("jobs.job_id"), nullable=False)
     freelancer_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
     bid_amount = db.Column(db.Numeric(10, 2), nullable=False)
@@ -113,6 +117,7 @@ class Review(db.Model):
     )
 
     review_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id = synonym("review_id")
     job_id = db.Column(db.Integer, db.ForeignKey("jobs.job_id"), nullable=False)
     reviewer_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
     reviewee_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)

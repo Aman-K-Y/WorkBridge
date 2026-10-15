@@ -49,6 +49,7 @@ services:
       - MATCHING_SERVICE_URL=http://matching-service:8081
       - SECRET_KEY=super-secret-docker-key
     volumes:
+      - ./backend:/app
       - ./database:/app/database
     depends_on:
       mysql:
