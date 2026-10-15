@@ -31,7 +31,12 @@ $currentUser = $_SESSION['user'] ?? null;
                     <?php endif; ?>
                     <a href="dashboard.php">Dashboard</a>
                     <a href="profile.php?id=<?php echo $currentUser['user_id']; ?>">My Profile</a>
-                    <span class="nav-user">Hi, <?php echo htmlspecialchars($currentUser['name']); ?></span>
+                    <span class="nav-user" style="display:inline-flex; align-items:center;">
+                        <?php if (!empty($currentUser['avatar_url'])): ?>
+                            <span class="nav-avatar"><img src="<?php echo htmlspecialchars($currentUser['avatar_url']); ?>" alt=""></span>
+                        <?php endif; ?>
+                        Hi, <?php echo htmlspecialchars($currentUser['name']); ?>
+                    </span>
                     <a href="logout.php" class="nav-btn-outline">Logout</a>
                 <?php else: ?>
                     <a href="login.php">Login</a>

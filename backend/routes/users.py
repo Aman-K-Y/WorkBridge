@@ -103,6 +103,9 @@ def update_profile():
     if "phone_number" in data:
         user.phone_number = data["phone_number"].strip() if data["phone_number"] else None
 
+    if "avatar_url" in data:
+        user.avatar_url = data["avatar_url"].strip() if data["avatar_url"] else None
+
     if user.role == "freelancer":
         if "higher_qualification" in data:
             user.higher_qualification = data["higher_qualification"].strip() if data["higher_qualification"] else None

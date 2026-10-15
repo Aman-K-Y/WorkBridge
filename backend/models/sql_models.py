@@ -28,6 +28,7 @@ class User(db.Model):
     higher_qualification = db.Column(db.String(150), nullable=True)
     skills = db.Column(db.String(255), nullable=True)
     resume_url = db.Column(db.String(255), nullable=True)
+    avatar_url = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
     updated_at = db.Column(db.TIMESTAMP, server_default=db.func.now(), onupdate=db.func.now())
     deleted_at = db.Column(db.TIMESTAMP, nullable=True)
@@ -89,6 +90,7 @@ class User(db.Model):
             "higher_qualification": self.higher_qualification,
             "skills": self.skills,
             "resume_url": self.resume_url,
+            "avatar_url": self.avatar_url,
             "is_active": self.is_active,
             "completion": completion,
             "created_at": self.created_at.isoformat() if self.created_at else None,

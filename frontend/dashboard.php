@@ -59,7 +59,13 @@ require_once 'includes/header.php';
 <!-- ================= Dashboard Hero Banner ================= -->
 <div class="dashboard-hero">
     <div class="dashboard-profile-lockup">
-        <div class="dashboard-avatar" aria-hidden="true"><?php echo htmlspecialchars($initials); ?></div>
+        <div class="dashboard-avatar" aria-hidden="true">
+            <?php if (!empty($user['avatar_url'])): ?>
+                <img src="<?php echo htmlspecialchars($user['avatar_url']); ?>" alt="<?php echo htmlspecialchars($user['name']); ?>">
+            <?php else: ?>
+                <?php echo htmlspecialchars($initials); ?>
+            <?php endif; ?>
+        </div>
         <div class="dashboard-profile-info">
             <h1>Welcome back, <?php echo htmlspecialchars($user['name']); ?></h1>
             <span class="dashboard-badge-pill">

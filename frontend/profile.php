@@ -25,6 +25,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isSelf) {
     if ($status !== '') $updateData['status'] = $status;
     if ($phoneNumber !== '') $updateData['phone_number'] = $phoneNumber;
 
+    // Handle Profile Photo (Avatar) Upload (Both Client & Freelancer)
+    if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+        $file = $_FILES['avatar'];
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $allowedExts = ['jpg', 'jpeg', 'png', 'webp'];
+
+        if (!in_array($ext, $allowedExts)) {
+            $errorMsg = 'Only image files (.jpg, .jpeg, .png, .webp) are allowed for profile photos.';
+        } elseif ($file['size'] > 4 * 1024 * 1024) {
+            $errorMsg = 'Profile photo size cannot exceed 4MB.';
+        } else {
+            $uploadDir = __DIR__ . '/uploads/avatars/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            $filename = 'avatar_user_' . (int)$userId . '_' . time() . '.' . $ext;
+            $destPath = $uploadDir . $filename;
+
+            if (move_uploaded_file($file['tmp_name'], $destPath)) {
+                $updateData['avatar_url'] = 'uploads/avatars/' . $filename;
+            } else {
+                $errorMsg = 'Failed to save uploaded profile photo.';
+            }
+        }
+    }
+
     if ($currentUser['role'] === 'freelancer') {
         if ($higherQual !== '') $updateData['higher_qualification'] = $higherQual;
         if ($skills !== '') $updateData['skills'] = $skills;
@@ -101,7 +128,13 @@ $completion = $profile['completion'] ?? ['percentage' => 50, 'is_complete' => fa
 <div class="profile-header-card">
     <div class="profile-top">
         <div class="profile-user-lockup">
-            <div class="profile-avatar-large" aria-hidden="true"><?php echo htmlspecialchars($initials); ?></div>
+            <div class="profile-avatar-large" aria-hidden="true">
+                <?php if (!empty($profile['avatar_url'])): ?>
+                    <img src="<?php echo htmlspecialchars($profile['avatar_url']); ?>" alt="<?php echo htmlspecialchars($profile['name']); ?>">
+                <?php else: ?>
+                    <?php echo htmlspecialchars($initials); ?>
+                <?php endif; ?>
+            </div>
             <div>
                 <h1 class="profile-name"><?php echo htmlspecialchars($profile['name']); ?></h1>
                 <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
@@ -320,6 +353,16 @@ $completion = $profile['completion'] ?? ['percentage' => 50, 'is_complete' => fa
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
+
+            <div class="form-group">
+                <label for="avatar">Profile Photo (JPG, PNG, WebP)</label>
+                <input type="file" name="avatar" id="avatar" accept="image/png, image/jpeg, image/webp">
+                <?php if (!empty($profile['avatar_url'])): ?>
+                    <small class="text-muted" style="display:block; margin-top:4px;">
+                        Current photo uploaded. Choose a new image file to replace it.
+                    </small>
+                <?php endif; ?>
+            </div>
 
             <div style="display:flex; gap:0.75rem; margin-top:1.5rem;">
                 <button type="submit" class="btn btn-primary">Save Verification Details</button>
