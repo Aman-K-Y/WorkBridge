@@ -1,0 +1,134 @@
+# ============================================
+# WorkBridge - Production Docker Compose
+# Single command deployment: docker compose -f docker-compose.prod.yml up -d --build
+# ============================================
+
+services:
+  # ---- MySQL Database ----
+  mysql:
+    image: mysql:8.0
+    container_name: workbridge_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-wb_root_prod_2026}
+      MYSQL_USER: ${MYSQL_USER:-wb_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-wb_password_prod_2026}
+      MYSQL_DATABASE: workbridge
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - workbridge-net
+
+  # ---- MongoDB ----
+  mongodb:
+    image: mongo:6.0
+    container_name: workbridge_mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-mongo_admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-mongo_password_prod_2026}
+      MONGO_INITDB_DATABASE: workbridge
+    volumes:
+      - mongo_data:/data/db
+      - ./mongo/init.js:/docker-entrypoint-initdb.d/init.js
+    networks:
+      - workbridge-net
+
+  # ---- Python Flask Backend API ----
+  backend:
+    build:
+      context: ./backend
+    container_name: workbridge_backend
+    restart: unless-stopped
+    environment:
+      - FLASK_ENV=production
+      - MYSQL_USER=${MYSQL_USER:-wb_user}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-wb_password_prod_2026}
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DB=workbridge
+      - MONGO_URI=mongodb://${MONGO_USER:-mongo_admin}:${MONGO_PASSWORD:-mongo_password_prod_2026}@mongodb:27017/?authSource=admin
+      - MONGO_DB_NAME=workbridge
+      - MATCHING_SERVICE_URL=http://matching-service:8081
+      - SECRET_KEY=${SECRET_KEY:-change-this-to-a-strong-random-key-in-production}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
+    command: >
+      sh -c "flask db upgrade && python database/seed_data.py && gunicorn -w 4 -b 0.0.0.0:5000 'app:create_app()'"
+    volumes:
+      - ./database:/app/database
+    networks:
+      - workbridge-net
+
+  # ---- Java Matching Microservice ----
+  matching-service:
+    build:
+      context: ./matching-service
+      dockerfile: Dockerfile
+    container_name: workbridge_matching
+    restart: unless-stopped
+    environment:
+      - PORT=8081
+      - MONGODB_URI=mongodb://${MONGO_USER:-mongo_admin}:${MONGO_PASSWORD:-mongo_password_prod_2026}@mongodb:27017/workbridge?authSource=admin
+    depends_on:
+      - mongodb
+    networks:
+      - workbridge-net
+
+  # ---- PHP Frontend (Apache) ----
+  frontend:
+    build:
+      context: ./frontend
+    container_name: workbridge_frontend
+    restart: unless-stopped
+    environment:
+      - API_BASE_URL=http://backend:5000/api
+    volumes:
+      - frontend_uploads:/var/www/html/uploads
+    depends_on:
+      - backend
+    networks:
+      - workbridge-net
+
+  # ---- Nginx Reverse Proxy (HTTPS entry point) ----
+  nginx:
+    image: nginx:alpine
+    container_name: workbridge_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certbot/conf:/etc/letsencrypt:ro
+      - ./nginx/certbot/www:/var/www/certbot:ro
+    depends_on:
+      - frontend
+    networks:
+      - workbridge-net
+
+  # ---- Certbot (auto-SSL with Let's Encrypt) ----
+  certbot:
+    image: certbot/certbot
+    container_name: workbridge_certbot
+    volumes:
+      - ./nginx/certbot/conf:/etc/letsencrypt
+      - ./nginx/certbot/www:/var/www/certbot
+
+volumes:
+  mysql_data:
+  mongo_data:
+  frontend_uploads:
+
+networks:
+  workbridge-net:
+    driver: bridge
